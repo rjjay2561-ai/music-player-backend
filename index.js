@@ -30,11 +30,31 @@ cloudinary.config({
 
                     // ====== Upload endpoint ======
                     app.post("/upload", upload.single("song"), (req, res) => {
-                      res.json({
+                      console.log("=== UPLOAD ATTEMPT ===");
+                      console.log("File received:", req.file ? "YES" : "NO");
+                      console.log("Cloudinary config check:", {
+                        cloud_name: process.env.CLOUD_NAME ? "SET" : "MISSING",
+                        api_key: process.env.CLOUD_KEY ? "SET" : "MISSING", 
+                        api_secret: process.env.CLOUD_SECRET ? "SET" : "MISSING"
+                      });
+
+                      if (!req.file) {
+                        console.log("ERROR: No file in request");
+                        return res.status(400).json({ error: "No file uploaded" });
+                      }
+
+                      try {
+                        console.log("SUCCESS: File uploaded to:", req.file.path);
+                        res.json({
                           message: "Uploaded successfully ✅",
-                              url: req.file.path, // Cloudinary public URL
-                                });
-                                });
+                          url: req.file.path,
+                        });
+                      } catch (error) {
+                        console.log("ERROR:", error.message);
+                        console.log("Full error:", JSON.stringify(error, null, 2));
+                        res.status(500).json({ error: error.message });
+                      }
+                    });
 
                                 // ====== Catch-all to serve index.html ======
                                 app.get("*", (req, res) => {
