@@ -309,12 +309,17 @@
     // === AUDIO PLAYER ===
     const audio = new Audio();
     let files = [];
-    let cloudFiles = []; // Store cloud-uploaded files
+    let cloudFiles = JSON.parse(localStorage.getItem('cloudFiles') || '[]'); // Load saved cloud files
     let currentIndex = 0;
     let currentSource = 'local'; // 'local' or 'cloud'
     let isShuffled = false;
     let isRepeating = false;
     let objectUrls = []; // Track URLs for cleanup
+
+    // Save cloud files to localStorage
+    function saveCloudFiles() {
+      localStorage.setItem('cloudFiles', JSON.stringify(cloudFiles));
+    }
 
     // UI Elements
     const fileInput = document.getElementById("fileInput");
@@ -442,6 +447,9 @@
             url: data.url,
             size: file.size
           });
+          
+          // Save to localStorage
+          saveCloudFiles();
           
           // Switch to cloud source and update playlist
           currentSource = 'cloud';
@@ -690,6 +698,13 @@
 
     // Start animation
     animate();
+
+    // Initialize - load any saved cloud files and update playlist
+    if (cloudFiles.length > 0) {
+      currentSource = 'cloud';
+      updatePlaylist();
+      updateControlsState(true);
+    }
 
     // Cleanup on page unload
     window.addEventListener("beforeunload", () => {
