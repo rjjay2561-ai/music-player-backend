@@ -22,8 +22,8 @@ cloudinary.config({
       const storage = new CloudinaryStorage({
         cloudinary,
           params: {
-              folder: "music_uploads",   // folder name in Cloudinary dashboard
-                  resource_type: "auto",     // allows mp3/mp4/jpg/png
+              folder: "music_uploads",
+                  resource_type: "auto",
                     },
                     });
                     const upload = multer({ storage });
@@ -31,35 +31,34 @@ cloudinary.config({
                     // ====== Upload endpoint ======
                     app.post("/upload", upload.single("song"), (req, res) => {
                       console.log("=== UPLOAD ATTEMPT ===");
-                      console.log("File received:", req.file ? "YES" : "NO");
-                      console.log("Cloudinary config check:", {
-                        cloud_name: process.env.CLOUD_NAME ? "SET" : "MISSING",
-                        api_key: process.env.CLOUD_KEY ? "SET" : "MISSING", 
-                        api_secret: process.env.CLOUD_SECRET ? "SET" : "MISSING"
-                      });
+                        console.log("File received:", req.file ? "YES" : "NO");
+                          console.log("Cloudinary config check:", {
+                              cloud_name: process.env.CLOUD_NAME ? "SET" : "MISSING",
+                                  api_key: process.env.CLOUD_KEY ? "SET" : "MISSING", 
+                                      api_secret: process.env.CLOUD_SECRET ? "SET" : "MISSING"
+                                        });
+                                          
+                                            if (!req.file) {
+                                                console.log("ERROR: No file in request");
+                                                    return res.status(400).json({ error: "No file uploaded" });
+                                                      }
+                                                        
+                                                          try {
+                                                              console.log("SUCCESS: File uploaded to:", req.file.path);
+                                                                  res.json({
+                                                                        message: "Uploaded successfully ✅",
+                                                                              url: req.file.path,
+                                                                                  });
+                                                                                    } catch (error) {
+                                                                                        console.log("ERROR:", error.message);
+                                                                                            res.status(500).json({ error: error.message });
+                                                                                              }
+                                                                                              });
 
-                      if (!req.file) {
-                        console.log("ERROR: No file in request");
-                        return res.status(400).json({ error: "No file uploaded" });
-                      }
+                                                                                              // ====== Catch-all to serve index.html ======
+                                                                                              app.get("*", (req, res) => {
+                                                                                                res.sendFile(path.join(__dirname, "public", "index.html"));
+                                                                                                });
 
-                      try {
-                        console.log("SUCCESS: File uploaded to:", req.file.path);
-                        res.json({
-                          message: "Uploaded successfully ✅",
-                          url: req.file.path,
-                        });
-                      } catch (error) {
-                        console.log("ERROR:", error.message);
-                        console.log("Full error:", JSON.stringify(error, null, 2));
-                        res.status(500).json({ error: error.message });
-                      }
-                    });
-
-                                // ====== Catch-all to serve index.html ======
-                                app.get("*", (req, res) => {
-                                  res.sendFile(path.join(__dirname, "public", "index.html"));
-                                  });
-
-                                  const PORT = process.env.PORT || 3000;
-                                  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+                                                                                                const PORT = process.env.PORT || 3000;
+                                                                                                app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on port ${PORT}`));
