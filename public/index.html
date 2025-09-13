@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Galaxy Music Player</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+    canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+    #playerUI {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 500px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      color: white;
+      box-shadow: 0 0 20px rgba(0,0,0,0.7);
+    }
+    #songTitle {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+      margin-bottom: 5px;
+    }
+    #songArtist {
+      font-size: 14px;
+      color: #aaa;
+      margin-bottom: 15px;
+    }
+    #controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+    }
+    .controlBtn {
+      background: white;
+      border: none;
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      font-size: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      color: black;
+      transition: transform 0.2s;
+    }
+    .controlBtn:hover {
+      transform: scale(1.1);
+    }
+    .controlBtn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    #progressBar {
+      width: 100%;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+    #playlist {
+      margin-top: 15px;
+      width: 100%;
+      padding: 5px;
+      border-radius: 8px;
+    }
+    #loadBtn {
+      margin-top: 10px;
+      background: #00ffcc;
+      color: black;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    #loadBtn:hover {
+      background: #00ccaa;
+    }
+    nav {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      border-radius: 12px;
+      padding: 10px 20px;
+      display: flex;
+      gap: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.7);
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s;
+      cursor: pointer;
+    }
+    nav a:hover {
+      color: #00ffcc;
+    }
+    #uploadForm {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 12px;
+      padding: 15px 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      box-shadow: 0 0 15px rgba(0,0,0,0.7);
+      z-index: 1000;
+    }
+    #cloudUpload {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      background: white;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #uploadBtn {
+      background: #00ffcc;
+      color: black;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 15px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    #uploadBtn:hover {
+      background: #00ccaa;
+    }
+    #uploadBtn:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+    #uploadProgress {
+      color: #00ffcc;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    #errorMessage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.8);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      display: none;
+      z-index: 1000;
+    }
+    #successMessage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 255, 0, 0.8);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      display: none;
+      z-index: 1000;
+    }
+    #timeDisplay {
+      font-size: 12px;
+      color: #ccc;
+      margin-top: 5px;
+    }
+    #volumeControl {
+      margin-top: 10px;
+      width: 100px;
+    }
+    #shuffleBtn, #repeatBtn {
+      background: rgba(255, 255, 255, 0.3);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: white;
+      cursor: pointer;
+      margin: 0 5px;
+      font-size: 12px;
+      transition: background-color 0.3s;
+    }
+    #shuffleBtn.active, #repeatBtn.active {
+      background: #00ffcc;
+      color: black;
+    }
+    #additionalControls {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="passwordModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 9999;">
+    <div style="background: rgba(0,0,0,0.8); padding: 40px; border-radius: 15px; text-align: center; border: 2px solid #00ffcc;">
+      <h2 style="color: white; margin-bottom: 20px;">🎵 Access Required</h2>
+      <input type="password" id="passwordInput" placeholder="Enter password" style="padding: 12px; border-radius: 8px; border: none; margin-bottom: 15px; width: 200px; text-align: center; font-size: 16px;">
+      <br>
+      <button id="loginBtn" style="background: #00ffcc; color: black; border: none; border-radius: 8px; padding: 12px 24px; cursor: pointer; font-weight: bold; font-size: 16px;">Enter</button>
+      <div id="loginError" style="color: #ff6b6b; margin-top: 15px; display: none;">Incorrect password</div>
+    </div>
+  </div>
+
+  <canvas id="bg"></canvas>
+  <nav>
+    <a onclick="showSection('music')">🎵 Music</a>
+    <a onclick="showSection('portfolio')">💼 Portfolio</a>
+    <a onclick="showSection('games')">🎮 Games</a>
+  </nav>
+  
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" id="cloudUpload" name="song" accept="audio/*">
+    <button type="submit" id="uploadBtn">☁️ Upload to Cloud</button>
+    <div id="uploadProgress" style="display:none;">Uploading...</div>
+  </form>
+  
+  <div id="errorMessage"></div>
+  <div id="successMessage"></div>
+  
+  <div id="playerUI">
+    <div id="songTitle">No song loaded</div>
+    <div id="songArtist">Select audio files to begin</div>
+    <div id="controls">
+      <button class="controlBtn" id="prevBtn" disabled>⏮</button>
+      <button class="controlBtn" id="playBtn" disabled>▶</button>
+      <button class="controlBtn" id="pauseBtn" disabled>⏸</button>
+      <button class="controlBtn" id="nextBtn" disabled>⏭</button>
+    </div>
+    <input type="range" id="progressBar" min="0" max="100" value="0" disabled>
+    <div id="timeDisplay">0:00 / 0:00</div>
+    
+    <div id="additionalControls">
+      <button id="shuffleBtn">🔀 Shuffle</button>
+      <input type="range" id="volumeControl" min="0" max="100" value="70">
+      <button id="repeatBtn">🔁 Repeat</button>
+    </div>
+    
+    <select id="playlist">
+      <option value="">No files loaded</option>
+    </select>
+    
+    <input type="file" id="fileInput" accept="audio/*" multiple style="display:none">
+    <button id="loadBtn">Load Audio Files</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // === PASSWORD AUTHENTICATION ===
+    const passwordModal = document.getElementById('passwordModal');
+    const passwordInput = document.getElementById('passwordInput');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+
+    // Check if user is already authenticated
+    const isAuthenticated = sessionStorage.getItem('authenticated') === 'true';
+    
+    if (isAuthenticated) {
+      passwordModal.style.display = 'none';
+    }
+
+    // Handle login
+    async function handleLogin() {
+      const password = passwordInput.value;
+      if (!password) {
+        showLoginError('Please enter a password');
+        return;
+      }
+
+      try {
+        const response = await fetch('/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        if (response.ok) {
+          sessionStorage.setItem('authenticated', 'true');
+          passwordModal.style.display = 'none';
+          showSuccess('Access granted!');
+        } else {
+          showLoginError('Incorrect password');
+          passwordInput.value = '';
+        }
+      } catch (error) {
+        showLoginError('Connection error. Please try again.');
+        console.error('Auth error:', error);
+      }
+    }
+
+    function showLoginError(message) {
+      loginError.textContent = message;
+      loginError.style.display = 'block';
+      setTimeout(() => {
+        loginError.style.display = 'none';
+      }, 3000);
+    }
+
+    // Event listeners for password modal
+    loginBtn.addEventListener('click', handleLogin);
+    passwordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        handleLogin();
+      }
+    });
+
+    // === GALAXY BACKGROUND ===
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("bg"), antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 4000;
+    const starVertices = [];
+    const starColors = [];
+    
+    for (let i = 0; i < starCount; i++) {
+      const x = (Math.random() - 0.5) * 2000;
+      const y = (Math.random() - 0.5) * 2000;
+      const z = (Math.random() - 0.5) * 2000;
+      starVertices.push(x, y, z);
+      starColors.push(1, 1, 1);
+    }
+    
+    starGeometry.setAttribute("position", new THREE.Float32BufferAttribute(starVertices, 3));
+    starGeometry.setAttribute("color", new THREE.Float32BufferAttribute(starColors, 3));
+    
+    const starMaterial = new THREE.PointsMaterial({ 
+      vertexColors: true, 
+      size: 1.5, 
+      transparent: true,
+      opacity: 0.8
+    });
+    
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+    camera.position.z = 800;
+
+    // Handle window resize
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    function animateStars() {
+      const colors = starGeometry.attributes.color.array;
+      const time = Date.now() * 0.001;
+      
+      for (let i = 0; i < colors.length; i += 3) {
+        colors[i] = 0.5 + 0.5 * Math.sin(time + i * 0.01);
+        colors[i+1] = 0.5 + 0.5 * Math.sin(time * 1.5 + i * 0.01);
+        colors[i+2] = 0.5 + 0.5 * Math.sin(time * 2 + i * 0.01);
+      }
+      starGeometry.attributes.color.needsUpdate = true;
+    }
+
+    // === AUDIO PLAYER ===
+    const audio = new Audio();
+    let files = [];
+    let cloudFiles = JSON.parse(localStorage.getItem('cloudFiles') || '[]'); // Load saved cloud files
+    let currentIndex = 0;
+    let currentSource = 'local'; // 'local' or 'cloud'
+    let isShuffled = false;
+    let isRepeating = false;
+    let objectUrls = []; // Track URLs for cleanup
+
+    // Save cloud files to localStorage
+    function saveCloudFiles() {
+      localStorage.setItem('cloudFiles', JSON.stringify(cloudFiles));
+    }
+
+    // UI Elements
+    const fileInput = document.getElementById("fileInput");
+    const playlist = document.getElementById("playlist");
+    const songTitle = document.getElementById("songTitle");
+    const songArtist = document.getElementById("songArtist");
+    const progressBar = document.getElementById("progressBar");
+    const timeDisplay = document.getElementById("timeDisplay");
+    const volumeControl = document.getElementById("volumeControl");
+    const playBtn = document.getElementById("playBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const shuffleBtn = document.getElementById("shuffleBtn");
+    const repeatBtn = document.getElementById("repeatBtn");
+    const errorMessage = document.getElementById("errorMessage");
+    const successMessage = document.getElementById("successMessage");
+    const uploadForm = document.getElementById("uploadForm");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const uploadProgress = document.getElementById("uploadProgress");
+
+    // Error and success handling
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+      setTimeout(() => {
+        errorMessage.style.display = 'none';
+      }, 3000);
+    }
+
+    function showSuccess(message) {
+      successMessage.textContent = message;
+      successMessage.style.display = 'block';
+      setTimeout(() => {
+        successMessage.style.display = 'none';
+      }, 3000);
+    }
+
+    // Format time helper
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return "0:00";
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Get current files array
+    function getCurrentFiles() {
+      return currentSource === 'cloud' ? cloudFiles : files;
+    }
+
+    // Update playlist display
+    function updatePlaylist() {
+      playlist.innerHTML = "";
+      
+      const currentFiles = getCurrentFiles();
+      if (currentFiles.length === 0) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "No files loaded";
+        playlist.appendChild(option);
+        return;
+      }
+
+      // Add source indicator and files
+      const sourceLabel = document.createElement("optgroup");
+      sourceLabel.label = currentSource === 'cloud' ? "☁️ Cloud Files" : "💻 Local Files";
+      playlist.appendChild(sourceLabel);
+      
+      currentFiles.forEach((file, i) => {
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = currentSource === 'cloud' ? file.name : file.name;
+        sourceLabel.appendChild(option);
+      });
+    }
+
+    // Cloud upload functionality
+    uploadForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const fileInput = document.getElementById("cloudUpload");
+      if (!fileInput.files.length) {
+        showError("Please select a file to upload");
+        return;
+      }
+
+      const file = fileInput.files[0];
+      if (!file.type.startsWith('audio/')) {
+        showError("Please select an audio file");
+        return;
+      }
+
+      // Show uploading state
+      uploadBtn.disabled = true;
+      uploadProgress.style.display = 'block';
+      uploadProgress.textContent = 'Uploading to cloud...';
+
+      try {
+        const formData = new FormData();
+        formData.append("song", file);
+
+        // Use your actual Render.com URL here
+        const serverUrl = window.location.hostname === 'localhost' 
+          ? 'http://localhost:3000' 
+          : 'https://music-player-backend-7wwy.onrender.com';
+
+        const response = await fetch(`${serverUrl}/upload`, {
+          method: "POST",
+          body: formData,
+          mode: 'cors'
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('Upload response:', data); // Debug log
+        
+        if (data.url) {
+          // Add to cloud files
+          cloudFiles.push({
+            name: file.name,
+            url: data.url,
+            size: file.size
+          });
+          
+          // Save to localStorage
+          saveCloudFiles();
+          
+          // Switch to cloud source and update playlist
+          currentSource = 'cloud';
+          updatePlaylist();
+          updateControlsState(true);
+          
+          // Auto-load and play the new song
+          loadSong(cloudFiles.length - 1);
+          audio.play().catch(error => console.error("Play error:", error));
+          
+          showSuccess(`${file.name} uploaded successfully!`);
+          
+          // Clear the form
+          fileInput.value = '';
+        } else {
+          throw new Error("No URL returned from server");
+        }
+      } catch (error) {
+        console.error("Upload error:", error);
+        showError("Upload failed: " + error.message);
+        
+        // Additional debugging
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          showError("Cannot connect to server. Check if your backend is running.");
+        }
+      } finally {
+        uploadBtn.disabled = false;
+        uploadProgress.style.display = 'none';
+      }
+    });
+
+    // Clean up object URLs
+    function cleanupUrls() {
+      objectUrls.forEach(url => URL.revokeObjectURL(url));
+      objectUrls = [];
+    }
+
+    // Load files
+    document.getElementById("loadBtn").addEventListener("click", () => fileInput.click());
+
+    fileInput.addEventListener("change", (e) => {
+      const newFiles = Array.from(e.target.files);
+      const audioFiles = newFiles.filter(file => file.type.startsWith('audio/'));
+      
+      if (audioFiles.length === 0) {
+        showError("No valid audio files selected");
+        return;
+      }
+
+      // Clean up old URLs
+      cleanupUrls();
+      
+      files = audioFiles;
+      currentSource = 'local';
+      updatePlaylist();
+      updateControlsState(true);
+      loadSong(0);
+    });
+
+    // Update controls state
+    function updateControlsState(hasFiles) {
+      playBtn.disabled = !hasFiles;
+      pauseBtn.disabled = !hasFiles;
+      prevBtn.disabled = !hasFiles;
+      nextBtn.disabled = !hasFiles;
+      progressBar.disabled = !hasFiles;
+    }
+
+    // Load song
+    function loadSong(index) {
+      const currentFiles = getCurrentFiles();
+      if (index < 0 || index >= currentFiles.length) return;
+      
+      currentIndex = index;
+      const file = currentFiles[index];
+      
+      try {
+        if (currentSource === 'cloud') {
+          // Load from cloud URL
+          audio.src = file.url;
+          audio.load();
+          
+          songTitle.textContent = file.name.replace(/\.[^/.]+$/, "");
+          songArtist.textContent = `☁️ Cloud File • ${(file.size / 1024 / 1024).toFixed(1)}MB`;
+        } else {
+          // Load local file
+          const url = URL.createObjectURL(file);
+          objectUrls.push(url);
+          
+          audio.src = url;
+          audio.load();
+          
+          songTitle.textContent = file.name.replace(/\.[^/.]+$/, "");
+          songArtist.textContent = `💻 Local File • ${(file.size / 1024 / 1024).toFixed(1)}MB`;
+        }
+        
+        playlist.value = index;
+        
+        // Update prev/next button states
+        prevBtn.disabled = currentFiles.length <= 1;
+        nextBtn.disabled = currentFiles.length <= 1;
+        
+      } catch (error) {
+        showError("Error loading audio file");
+        console.error("Audio loading error:", error);
+      }
+    }
+
+    // Playlist selection
+    playlist.addEventListener("change", (e) => {
+      const index = parseInt(e.target.value);
+      if (!isNaN(index)) {
+        loadSong(index);
+      }
+    });
+
+    // Audio controls
+    playBtn.addEventListener("click", () => {
+      audio.play().catch(error => {
+        showError("Cannot play audio file");
+        console.error("Play error:", error);
+      });
+    });
+
+    pauseBtn.addEventListener("click", () => {
+      audio.pause();
+    });
+
+    prevBtn.addEventListener("click", () => {
+      const currentFiles = getCurrentFiles();
+      let newIndex;
+      if (isShuffled) {
+        newIndex = Math.floor(Math.random() * currentFiles.length);
+      } else {
+        newIndex = currentInd<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Galaxy Music Player</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+    canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+    #playerUI {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 500px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      color: white;
+      box-shadow: 0 0 20px rgba(0,0,0,0.7);
+    }
+    #songTitle {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+      margin-bottom: 5px;
+    }
+    #songArtist {
+      font-size: 14px;
+      color: #aaa;
+      margin-bottom: 15px;
+    }
+    #controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+    }
+    .controlBtn {
+      background: white;
+      border: none;
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      font-size: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      color: black;
+      transition: transform 0.2s;
+    }
+    .controlBtn:hover {
+      transform: scale(1.1);
+    }
+    .controlBtn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    #progressBar {
+      width: 100%;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+    #playlist {
+      margin-top: 15px;
+      width: 100%;
+      padding: 5px;
+      border-radius: 8px;
+    }
+    #loadBtn {
+      margin-top: 10px;
+      background: #00ffcc;
+      color: black;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    #loadBtn:hover {
+      background: #00ccaa;
+    }
+    nav {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      border-radius: 12px;
+      padding: 10px 20px;
+      display: flex;
+      gap: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.7);
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s;
+      cursor: pointer;
+    }
+    nav a:hover {
+      color: #00ffcc;
+    }
+    #uploadForm {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 12px;
+      padding: 15px 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      box-shadow: 0 0 15px rgba(0,0,0,0.7);
+      z-index: 1000;
+    }
+    #cloudUpload {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      background: white;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #uploadBtn {
+      background: #00ffcc;
+      color: black;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 15px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    #uploadBtn:hover {
+      background: #00ccaa;
+    }
+    #uploadBtn:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+    #uploadProgress {
+      color: #00ffcc;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    #errorMessage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.8);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      display: none;
+      z-index: 1000;
+    }
+    #successMessage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 255, 0, 0.8);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      display: none;
+      z-index: 1000;
+    }
+    #timeDisplay {
+      font-size: 12px;
+      color: #ccc;
+      margin-top: 5px;
+    }
+    #volumeControl {
+      margin-top: 10px;
+      width: 100px;
+    }
+    #shuffleBtn, #repeatBtn {
+      background: rgba(255, 255, 255, 0.3);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: white;
+      cursor: pointer;
+      margin: 0 5px;
+      font-size: 12px;
+      transition: background-color 0.3s;
+    }
+    #shuffleBtn.active, #repeatBtn.active {
+      background: #00ffcc;
+      color: black;
+    }
+    #additionalControls {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+  <nav>
+    <a onclick="showSection('music')">🎵 Music</a>
+    <a onclick="showSection('portfolio')">💼 Portfolio</a>
+    <a onclick="showSection('games')">🎮 Games</a>
+  </nav>
+  
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" id="cloudUpload" name="song" accept="audio/*">
+    <button type="submit" id="uploadBtn">☁️ Upload to Cloud</button>
+    <div id="uploadProgress" style="display:none;">Uploading...</div>
+  </form>
+  
+  <div id="errorMessage"></div>
+  <div id="successMessage"></div>
+  
+  <div id="playerUI">
+    <div id="songTitle">No song loaded</div>
+    <div id="songArtist">Select audio files to begin</div>
+    <div id="controls">
+      <button class="controlBtn" id="prevBtn" disabled>⏮</button>
+      <button class="controlBtn" id="playBtn" disabled>▶</button>
+      <button class="controlBtn" id="pauseBtn" disabled>⏸</button>
+      <button class="controlBtn" id="nextBtn" disabled>⏭</button>
+    </div>
+    <input type="range" id="progressBar" min="0" max="100" value="0" disabled>
+    <div id="timeDisplay">0:00 / 0:00</div>
+    
+    <div id="additionalControls">
+      <button id="shuffleBtn">🔀 Shuffle</button>
+      <input type="range" id="volumeControl" min="0" max="100" value="70">
+      <button id="repeatBtn">🔁 Repeat</button>
+    </div>
+    
+    <select id="playlist">
+      <option value="">No files loaded</option>
+    </select>
+    
+    <input type="file" id="fileInput" accept="audio/*" multiple style="display:none">
+    <button id="loadBtn">Load Audio Files</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // === GALAXY BACKGROUND ===
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("bg"), antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 4000;
+    const starVertices = [];
+    const starColors = [];
+    
+    for (let i = 0; i < starCount; i++) {
+      const x = (Math.random() - 0.5) * 2000;
+      const y = (Math.random() - 0.5) * 2000;
+      const z = (Math.random() - 0.5) * 2000;
+      starVertices.push(x, y, z);
+      starColors.push(1, 1, 1);
+    }
+    
+    starGeometry.setAttribute("position", new THREE.Float32BufferAttribute(starVertices, 3));
+    starGeometry.setAttribute("color", new THREE.Float32BufferAttribute(starColors, 3));
+    
+    const starMaterial = new THREE.PointsMaterial({ 
+      vertexColors: true, 
+      size: 1.5, 
+      transparent: true,
+      opacity: 0.8
+    });
+    
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+    camera.position.z = 800;
+
+    // Handle window resize
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    function animateStars() {
+      const colors = starGeometry.attributes.color.array;
+      const time = Date.now() * 0.001;
+      
+      for (let i = 0; i < colors.length; i += 3) {
+        colors[i] = 0.5 + 0.5 * Math.sin(time + i * 0.01);
+        colors[i+1] = 0.5 + 0.5 * Math.sin(time * 1.5 + i * 0.01);
+        colors[i+2] = 0.5 + 0.5 * Math.sin(time * 2 + i * 0.01);
+      }
+      starGeometry.attributes.color.needsUpdate = true;
+    }
+
+    // === AUDIO PLAYER ===
+    const audio = new Audio();
+    let files = [];
+    let cloudFiles = JSON.parse(localStorage.getItem('cloudFiles') || '[]'); // Load saved cloud files
+    let currentIndex = 0;
+    let currentSource = 'local'; // 'local' or 'cloud'
+    let isShuffled = false;
+    let isRepeating = false;
+    let objectUrls = []; // Track URLs for cleanup
+
+    // Save cloud files to localStorage
+    function saveCloudFiles() {
+      localStorage.setItem('cloudFiles', JSON.stringify(cloudFiles));
+    }
+
+    // UI Elements
+    const fileInput = document.getElementById("fileInput");
+    const playlist = document.getElementById("playlist");
+    const songTitle = document.getElementById("songTitle");
+    const songArtist = document.getElementById("songArtist");
+    const progressBar = document.getElementById("progressBar");
+    const timeDisplay = document.getElementById("timeDisplay");
+    const volumeControl = document.getElementById("volumeControl");
+    const playBtn = document.getElementById("playBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const shuffleBtn = document.getElementById("shuffleBtn");
+    const repeatBtn = document.getElementById("repeatBtn");
+    const errorMessage = document.getElementById("errorMessage");
+    const successMessage = document.getElementById("successMessage");
+    const uploadForm = document.getElementById("uploadForm");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const uploadProgress = document.getElementById("uploadProgress");
+
+    // Error and success handling
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+      setTimeout(() => {
+        errorMessage.style.display = 'none';
+      }, 3000);
+    }
+
+    function showSuccess(message) {
+      successMessage.textContent = message;
+      successMessage.style.display = 'block';
+      setTimeout(() => {
+        successMessage.style.display = 'none';
+      }, 3000);
+    }
+
+    // Format time helper
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return "0:00";
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Get current files array
+    function getCurrentFiles() {
+      return currentSource === 'cloud' ? cloudFiles : files;
+    }
+
+    // Update playlist display
+    function updatePlaylist() {
+      playlist.innerHTML = "";
+      
+      const currentFiles = getCurrentFiles();
+      if (currentFiles.length === 0) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "No files loaded";
+        playlist.appendChild(option);
+        return;
+      }
+
+      // Add source indicator and files
+      const sourceLabel = document.createElement("optgroup");
+      sourceLabel.label = currentSource === 'cloud' ? "☁️ Cloud Files" : "💻 Local Files";
+      playlist.appendChild(sourceLabel);
+      
+      currentFiles.forEach((file, i) => {
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = currentSource === 'cloud' ? file.name : file.name;
+        sourceLabel.appendChild(option);
+      });
+    }
+
+    // Cloud upload functionality
+    uploadForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const fileInput = document.getElementById("cloudUpload");
+      if (!fileInput.files.length) {
+        showError("Please select a file to upload");
+        return;
+      }
+
+      const file = fileInput.files[0];
+      if (!file.type.startsWith('audio/')) {
+        showError("Please select an audio file");
+        return;
+      }
+
+      // Show uploading state
+      uploadBtn.disabled = true;
+      uploadProgress.style.display = 'block';
+      uploadProgress.textContent = 'Uploading to cloud...';
+
+      try {
+        const formData = new FormData();
+        formData.append("song", file);
+
+        // Use your actual Render.com URL here
+        const serverUrl = window.location.hostname === 'localhost' 
+          ? 'http://localhost:3000' 
+          : 'https://music-player-backend-7wwy.onrender.com';
+
+        const response = await fetch(`${serverUrl}/upload`, {
+          method: "POST",
+          body: formData,
+          mode: 'cors'
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('Upload response:', data); // Debug log
+        
+        if (data.url) {
+          // Add to cloud files
+          cloudFiles.push({
+            name: file.name,
+            url: data.url,
+            size: file.size
+          });
+          
+          // Save to localStorage
+          saveCloudFiles();
+          
+          // Switch to cloud source and update playlist
+          currentSource = 'cloud';
+          updatePlaylist();
+          updateControlsState(true);
+          
+          // Auto-load and play the new song
+          loadSong(cloudFiles.length - 1);
+          audio.play().catch(error => console.error("Play error:", error));
+          
+          showSuccess(`${file.name} uploaded successfully!`);
+          
+          // Clear the form
+          fileInput.value = '';
+        } else {
+          throw new Error("No URL returned from server");
+        }
+      } catch (error) {
+        console.error("Upload error:", error);
+        showError("Upload failed: " + error.message);
+        
+        // Additional debugging
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          showError("Cannot connect to server. Check if your backend is running.");
+        }
+      } finally {
+        uploadBtn.disabled = false;
+        uploadProgress.style.display = 'none';
+      }
+    });
+
+    // Clean up object URLs
+    function cleanupUrls() {
+      objectUrls.forEach(url => URL.revokeObjectURL(url));
+      objectUrls = [];
+    }
+
+    // Load files
+    document.getElementById("loadBtn").addEventListener("click", () => fileInput.click());
+
+    fileInput.addEventListener("change", (e) => {
+      const newFiles = Array.from(e.target.files);
+      const audioFiles = newFiles.filter(file => file.type.startsWith('audio/'));
+      
+      if (audioFiles.length === 0) {
+        showError("No valid audio files selected");
+        return;
+      }
+
+      // Clean up old URLs
+      cleanupUrls();
+      
+      files = audioFiles;
+      currentSource = 'local';
+      updatePlaylist();
+      updateControlsState(true);
+      loadSong(0);
+    });
+
+    // Update controls state
+    function updateControlsState(hasFiles) {
+      playBtn.disabled = !hasFiles;
+      pauseBtn.disabled = !hasFiles;
+      prevBtn.disabled = !hasFiles;
+      nextBtn.disabled = !hasFiles;
+      progressBar.disabled = !hasFiles;
+    }
+
+    // Load song
+    function loadSong(index) {
+      const currentFiles = getCurrentFiles();
+      if (index < 0 || index >= currentFiles.length) return;
+      
+      currentIndex = index;
+      const file = currentFiles[index];
+      
+      try {
+        if (currentSource === 'cloud') {
+          // Load from cloud URL
+          audio.src = file.url;
+          audio.load();
+          
+          songTitle.textContent = file.name.replace(/\.[^/.]+$/, "");
+          songArtist.textContent = `☁️ Cloud File • ${(file.size / 1024 / 1024).toFixed(1)}MB`;
+        } else {
+          // Load local file
+          const url = URL.createObjectURL(file);
+          objectUrls.push(url);
+          
+          audio.src = url;
+          audio.load();
+          
+          songTitle.textContent = file.name.replace(/\.[^/.]+$/, "");
+          songArtist.textContent = `💻 Local File • ${(file.size / 1024 / 1024).toFixed(1)}MB`;
+        }
+        
+        playlist.value = index;
+        
+        // Update prev/next button states
+        prevBtn.disabled = currentFiles.length <= 1;
+        nextBtn.disabled = currentFiles.length <= 1;
+        
+      } catch (error) {
+        showError("Error loading audio file");
+        console.error("Audio loading error:", error);
+      }
+    }
+
+    // Playlist selection
+    playlist.addEventListener("change", (e) => {
+      const index = parseInt(e.target.value);
+      if (!isNaN(index)) {
+        loadSong(index);
+      }
+    });
+
+    // Audio controls
+    playBtn.addEventListener("click", () => {
+      audio.play().catch(error => {
+        showError("Cannot play audio file");
+        console.error("Play error:", error);
+      });
+    });
+
+    pauseBtn.addEventListener("click", () => {
+      audio.pause();
+    });
+
+    prevBtn.addEventListener("click", () => {
+      const currentFiles = getCurrentFiles();
+      let newIndex;
+      if (isShuffled) {
+        newIndex = Math.floor(Math.random() * currentFiles.length);
+      } else {
+        newIndex = currentIndex > 0 ? currentIndex - 1 : currentFiles.length - 1;
+      }
+      loadSong(newIndex);
+      audio.play().catch(error => console.error("Play error:", error));
+    });
+
+    nextBtn.addEventListener("click", () => {
+      const currentFiles = getCurrentFiles();
+      let newIndex;
+      if (isShuffled) {
+        newIndex = Math.floor(Math.random() * currentFiles.length);
+      } else {
+        newIndex = currentIndex < currentFiles.length - 1 ? currentIndex + 1 : 0;
+      }
+      loadSong(newIndex);
+      audio.play().catch(error => console.error("Play error:", error));
+    });
+
+    // Progress bar
+    progressBar.addEventListener("input", (e) => {
+      if (audio.duration) {
+        audio.currentTime = (e.target.value / 100) * audio.duration;
+      }
+    });
+
+    // Volume control
+    volumeControl.addEventListener("input", (e) => {
+      audio.volume = e.target.value / 100;
+    });
+
+    // Initialize volume
+    audio.volume = 0.7;
+
+    // Shuffle and repeat
+    shuffleBtn.addEventListener("click", () => {
+      isShuffled = !isShuffled;
+      shuffleBtn.classList.toggle("active");
+    });
+
+    repeatBtn.addEventListener("click", () => {
+      isRepeating = !isRepeating;
+      repeatBtn.classList.toggle("active");
+    });
+
+    // Audio events
+    audio.addEventListener("timeupdate", () => {
+      if (audio.duration) {
+        const progress = (audio.currentTime / audio.duration) * 100;
+        progressBar.value = progress;
+        timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+      }
+    });
+
+    audio.addEventListener("ended", () => {
+      if (isRepeating) {
+        audio.currentTime = 0;
+        audio.play().catch(error => console.error("Play error:", error));
+      } else {
+        const currentFiles = getCurrentFiles();
+        let newIndex;
+        if (isShuffled) {
+          newIndex = Math.floor(Math.random() * currentFiles.length);
+        } else {
+          newIndex = currentIndex < currentFiles.length - 1 ? currentIndex + 1 : 0;
+        }
+        loadSong(newIndex);
+        audio.play().catch(error => console.error("Play error:", error));
+      }
+    });
+
+    audio.addEventListener("loadstart", () => {
+      songArtist.textContent = "Loading...";
+    });
+
+    audio.addEventListener("canplay", () => {
+      const currentFiles = getCurrentFiles();
+      if (currentFiles[currentIndex]) {
+        const file = currentFiles[currentIndex];
+        const sourceIcon = currentSource === 'cloud' ? '☁️' : '💻';
+        const sourceText = currentSource === 'cloud' ? 'Cloud File' : 'Local File';
+        songArtist.textContent = `${sourceIcon} ${sourceText} • ${(file.size / 1024 / 1024).toFixed(1)}MB`;
+      }
+    });
+
+    audio.addEventListener("error", (e) => {
+      showError("Error playing audio file");
+      console.error("Audio error:", e);
+    });
+
+    // Navigation
+    function showSection(section) {
+      switch(section) {
+        case 'music':
+          // Already on music page
+          break;
+        case 'portfolio':
+          showError("Portfolio section not implemented yet");
+          break;
+        case 'games':
+          showError("Games section not implemented yet");
+          break;
+      }
+    }
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      stars.rotation.y += 0.0007;
+      animateStars();
+      renderer.render(scene, camera);
+    }
+
+    // Start animation
+    animate();
+
+    // Initialize - load any saved cloud files and update playlist
+    if (cloudFiles.length > 0) {
+      currentSource = 'cloud';
+      updatePlaylist();
+      updateControlsState(true);
+    }
+
+    // Cleanup on page unload
+    window.addEventListener("beforeunload", () => {
+      cleanupUrls();
+    });
+  </script>
+</body>
+</html>
