@@ -7,6 +7,7 @@ const path = require("path");
 
 const app = express();
 app.use(cors());
+app.use(express.json()); // Add this line for password authentication
 
 // ====== Serve static frontend ======
 app.use(express.static(path.join(__dirname, "public")));
@@ -55,10 +56,23 @@ cloudinary.config({
                                                                                               }
                                                                                               });
 
-                                                                                              // ====== Catch-all to serve index.html ======
-                                                                                              app.get("*", (req, res) => {
-                                                                                                res.sendFile(path.join(__dirname, "public", "index.html"));
-                                                                                                });
+                                                                                              // ====== Password authentication endpoint ======
+                                                                                              app.post('/auth', (req, res) => {
+                                                                                                console.log('Auth attempt:', req.body.password ? 'Password provided' : 'No password');
+                                                                                                  
+                                                                                                    if (req.body.password === process.env.SITE_PASSWORD) {
+                                                                                                        console.log('Auth successful');
+                                                                                                            res.json({ success: true });
+                                                                                                              } else {
+                                                                                                                  console.log('Auth failed');
+                                                                                                                      res.status(401).json({ error: 'Incorrect password' });
+                                                                                                                        }
+                                                                                                                        });
 
-                                                                                                const PORT = process.env.PORT || 3000;
-                                                                                                app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on port ${PORT}`));
+                                                                                                                        // ====== Catch-all to serve index.html ======
+                                                                                                                        app.get("*", (req, res) => {
+                                                                                                                          res.sendFile(path.join(__dirname, "public", "index.html"));
+                                                                                                                          });
+
+                                                                                                                          const PORT = process.env.PORT || 3000;
+                                                                                                                          app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on port ${PORT}`));
